@@ -286,16 +286,15 @@ body.posters-view .daybar{padding-top:0}
 
 /* ---------- Calendar view ---------- */
 body.calendar-view .list{padding:0}
-.cal{display:flex;padding:8px 22px 60px;overflow-x:auto}
-.cal-gutter-col{flex:none;width:50px}
-.cal-cols{display:flex;flex:1;min-width:0;gap:8px}
-.cal-col{flex:1;min-width:148px;max-width:360px}
-.cal-colhead{height:46px;display:flex;flex-direction:column;justify-content:center;position:sticky;top:57px;background:var(--bg);z-index:6;border-bottom:1px solid var(--border)}
-.cal-colhead .cd{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
-.cal-colhead .cn{font-size:11.5px;color:var(--text-3)}
-.cal-gutter{position:relative}
-.cal-hour{position:absolute;right:8px;transform:translateY(-50%);font-size:10.5px;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cal-colbody{position:relative;border-left:1px solid var(--border)}
+.cal-stack{padding:6px 22px 60px;max-width:1080px}
+.cal-day{margin-bottom:14px}
+.cal-day-h{position:sticky;top:57px;z-index:6;display:flex;align-items:baseline;gap:10px;padding:8px 2px 8px;background:linear-gradient(var(--bg) 68%,rgba(255,255,255,0))}
+.cal-day-h .d{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.cal-day-h .n{font-size:12px;color:var(--text-3)}
+.cal-day-grid{display:flex}
+.cal-gutter{flex:none;width:52px;position:relative}
+.cal-hour{position:absolute;right:9px;transform:translateY(-50%);font-size:10.5px;color:var(--text-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cal-daybody{position:relative;flex:1;min-width:0;border-left:1px solid var(--border)}
 .cal-line{position:absolute;left:0;right:0;height:1px;background:var(--border)}
 .cal-ev{position:absolute;border:1px solid var(--border-2);border-left:3px solid var(--accent);border-radius:6px;background:var(--panel);padding:4px 7px;overflow:hidden;box-shadow:0 1px 2px rgba(20,21,26,.05)}
 .cal-ev::before{content:"";position:absolute;inset:0;background:var(--evc);opacity:.07;pointer-events:none}
@@ -305,6 +304,9 @@ body.calendar-view .list{padding:0}
 .cal-star{position:absolute;top:1px;right:1px;padding:2px;opacity:0;background:var(--panel);border-radius:5px}
 .cal-ev:hover .cal-star{opacity:1}
 .cal-star svg{width:13px;height:13px}
+.cal-ev.short{padding:3px 7px}
+.cal-ev.short .cal-ev-time{display:none}
+.cal-ev.short .cal-ev-title{-webkit-line-clamp:1;margin-top:0}
 .agenda-row{display:flex;gap:7px;align-items:flex-start;padding:5px 8px;border-radius:7px}
 .agenda-row:hover{background:var(--bg-2)}
 .agenda-row .star{padding:2px;margin-top:1px;flex:none}
@@ -757,24 +759,21 @@ body.calendar-view .list{padding:0}
       list.innerHTML='<div class="empty"><h3>Your schedule is empty</h3><p>Tap the ☆ on any session, presentation, or poster and it will appear here laid out by day and time — so you can spot overlaps at a glance.</p></div>';
       return;
     }
-    // group by day
+    // group by day, then render each day full-width, stacked vertically
     var byDay={},order=[];
     items.forEach(function(it){if(!byDay[it.day]){byDay[it.day]=[];order.push(it.day);}byDay[it.day].push(it);});
     order.sort();
-    // global time range
-    var minM=1440,maxM=0;
-    items.forEach(function(it){minM=Math.min(minM,it.startMin);maxM=Math.max(maxM,it.endMin);});
-    minM=Math.floor(minM/60)*60; maxM=Math.ceil(maxM/60)*60;
-    if(maxM-minM<120)maxM=minM+120;
-    var PX=0.95, H=(maxM-minM)*PX;
-    // hour gutter
-    var gutter='';
-    for(var m=minM;m<=maxM;m+=60){gutter+='<div class="cal-hour" style="top:'+((m-minM)*PX)+'px">'+fmtMin(m).replace(':00','')+'</div>';}
-    // columns
-    var cols='';
+    var PX=0.95;
+    var html='<div class="cal-stack">';
     order.forEach(function(day){
       var arr=byDay[day].slice().sort(function(a,b){return a.startMin-b.startMin || a.endMin-b.endMin;});
-      // lane packing
+      // per-day time range so each day is only as tall as it needs
+      var minM=1440,maxM=0;
+      arr.forEach(function(it){minM=Math.min(minM,it.startMin);maxM=Math.max(maxM,it.endMin);});
+      minM=Math.floor(minM/60)*60; maxM=Math.ceil(maxM/60)*60;
+      if(maxM-minM<120)maxM=minM+120;
+      var H=(maxM-minM)*PX;
+      // lane packing for overlaps within the day
       var laneEnd=[];
       arr.forEach(function(it){
         var lane=-1;
@@ -783,27 +782,30 @@ body.calendar-view .list{padding:0}
         it._lane=lane;laneEnd[lane]=it.endMin;
       });
       var lanes=laneEnd.length;
-      // hour lines
-      var lines='';
-      for(var mm=minM;mm<=maxM;mm+=60){lines+='<div class="cal-line" style="top:'+((mm-minM)*PX)+'px"></div>';}
+      var gutter='',lines='';
+      for(var m=minM;m<=maxM;m+=60){
+        gutter+='<div class="cal-hour" style="top:'+((m-minM)*PX)+'px">'+fmtMin(m).replace(':00','')+'</div>';
+        lines+='<div class="cal-line" style="top:'+((m-minM)*PX)+'px"></div>';
+      }
       var blocks='';
       arr.forEach(function(it){
-        var top=(it.startMin-minM)*PX, hgt=Math.max((it.endMin-it.startMin)*PX,22);
+        var top=(it.startMin-minM)*PX, hgt=Math.max((it.endMin-it.startMin)*PX,24);
         var w=100/lanes, left=it._lane*w;
         var c=calColor(it);
         var kindLbl=it.kind==='poster'?'Poster':(it.kind==='talk'?'Talk':'');
-        blocks+='<div class="cal-ev k-'+it.kind+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 2px);width:calc('+w+'% - 4px);border-left-color:'+c+';--evc:'+c+'" title="'+esc(it.title+' · '+fmtMin(it.startMin)+'–'+fmtMin(it.endMin)+(it.room?' · '+it.room:''))+'" data-evid="'+it.id+'">'+
+        blocks+='<div class="cal-ev k-'+it.kind+(hgt<40?' short':'')+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 2px);width:calc('+w+'% - 4px);border-left-color:'+c+';--evc:'+c+'" title="'+esc(it.title+' · '+fmtMin(it.startMin)+'–'+fmtMin(it.endMin)+(it.room?' · '+it.room:''))+'" data-evid="'+it.id+'">'+
           '<button class="star on cal-star" data-star="'+it.id+'" title="Remove">'+ICON.starFill+'</button>'+
-          '<div class="cal-ev-time">'+esc(fmtMin(it.startMin))+(kindLbl?' · '+kindLbl:'')+'</div>'+
+          '<div class="cal-ev-time">'+esc(fmtMin(it.startMin))+'–'+esc(fmtMin(it.endMin))+(kindLbl?' · '+kindLbl:'')+'</div>'+
           '<div class="cal-ev-title">'+esc(it.title)+'</div>'+
-          (it.room&&hgt>52?'<div class="cal-ev-room">'+esc(it.room)+'</div>':'')+
+          (it.room&&hgt>58?'<div class="cal-ev-room">'+esc(it.room)+'</div>':'')+
         '</div>';
       });
-      cols+='<div class="cal-col"><div class="cal-colhead"><div class="cd">'+esc(byDay[day][0].dl.split(' ').slice(0,1).join(' '))+'</div><div class="cn">'+esc(byDay[day][0].dl.replace(/^\w+\s/,''))+'</div></div>'+
-            '<div class="cal-colbody" style="height:'+H+'px">'+lines+blocks+'</div></div>';
+      html+='<div class="cal-day"><div class="cal-day-h"><span class="d">'+esc(byDay[day][0].dl)+'</span><span class="n">'+arr.length+' item'+(arr.length!==1?'s':'')+'</span></div>'+
+            '<div class="cal-day-grid"><div class="cal-gutter" style="height:'+H+'px">'+gutter+'</div>'+
+            '<div class="cal-daybody" style="height:'+H+'px">'+lines+blocks+'</div></div></div>';
     });
-    list.innerHTML='<div class="cal"><div class="cal-gutter-col"><div class="cal-colhead"></div><div class="cal-gutter" style="height:'+H+'px">'+gutter+'</div></div>'+
-                   '<div class="cal-cols">'+cols+'</div></div>';
+    html+='</div>';
+    list.innerHTML=html;
   }
 
   function cardHTML(s){
