@@ -275,6 +275,8 @@ button{font-family:inherit;cursor:pointer}
 .poster-title{font-size:13.5px;font-weight:500;color:var(--text);line-height:1.42;letter-spacing:-.005em}
 .poster-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:5px}
 .poster-pres{font-size:12px;color:var(--text-3)}
+.poster-ctx{font-size:11.5px;color:var(--text-3);margin-bottom:3px}
+.poster-ctx .board{color:var(--text);font-weight:600}
 .ptag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--text-2);background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;white-space:nowrap}
 .ptag .dot{width:7px;height:7px;border-radius:2px;flex:none}
 .poster-abs{display:none;font-size:12.5px;color:var(--text-2);line-height:1.6;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
@@ -421,6 +423,7 @@ body.calendar-view .list{padding:0}
     });
   });
   if(POSTERS.length)state.pSession=POSTERS[0].id;
+  var POSTERS_HAVE_BOARDS=POSTERS.some(function(s){return (s.pr||[]).some(function(p){return boardOf(p)!=null;});});
   function starredPosters(){var a=[];POSTERS.forEach(function(s){(s.pr||[]).forEach(function(p){if(stars.has(p.id))a.push(p);});});return a;}
   function countStarredSessions(){var n=0;stars.forEach(function(id){if(sessionIds.has(id))n++;});return n;}
   var openPosters=new Set();
@@ -600,7 +603,8 @@ body.calendar-view .list{padding:0}
     var head='';
     if(isPicks){
       head='<div class="phead"><div class="phead-title">★ My poster picks</div>'+
-           '<div class="phead-meta">'+all.length+' poster'+(all.length!==1?'s':'')+' saved across sessions</div></div>';
+           '<div class="phead-meta">'+all.length+' poster'+(all.length!==1?'s':'')+' saved · sorted by day, time'+(POSTERS_HAVE_BOARDS?', board number':'')+'</div>'+
+           (all.length&&!POSTERS_HAVE_BOARDS?'<div class="phead-note">Poster board numbers aren’t published yet — they’ll appear here once ASHG releases them.</div>':'')+'</div>';
     }else{
       var s=posterById[state.pSession];
       head='<div class="phead"><div class="phead-title">'+esc(s?s.t:'')+'</div>'+
@@ -618,7 +622,7 @@ body.calendar-view .list{padding:0}
       });
       chips+='</div>';
     }
-    var sortSeg='<div class="seg pseg">'+
+    var sortSeg=isPicks?'':'<div class="seg pseg">'+
       '<button data-psort="track"'+(state.pSort==='track'?' class="on"':'')+'>By track</button>'+
       '<button data-psort="az"'+(state.pSort==='az'?' class="on"':'')+'>A–Z</button>'+
       '<button data-psort="pres"'+(state.pSort==='pres'?' class="on"':'')+'>Presenter</button></div>';
@@ -636,13 +640,18 @@ body.calendar-view .list{padding:0}
     else if(isPicks && !all.length){html='<div class="empty"><h3>No posters saved yet</h3><p>Open a poster session and tap the star on posters you want to visit. They’ll collect here.</p></div>';}
     else if(!filtered.length){html='<div class="empty"><h3>No posters match</h3><p>Try a different search or clear the track filter.</p></div>';}
     else if(isPicks){
-      // group by session
-      var bySess={},sorder=[];
-      filtered.forEach(function(p){var k=p._sess.id;if(!bySess[k]){bySess[k]=[];sorder.push(k);}bySess[k].push(p);});
-      sorder.forEach(function(k){
-        var sp=posterById[k];var arr=bySess[k];
-        html+='<div class="pgroup-h"><span class="d">'+esc(sp.t)+'</span><span class="n">'+esc(sp.dl+' · '+sp.t1)+' · '+arr.length+'</span></div>';
-        arr.slice().sort(byTitle).forEach(function(p){html+=posterHTML(p,true);});
+      // flat list sorted by day -> time -> board number -> title, grouped by day
+      var arr=filtered.slice().sort(byDayTimeBoard);
+      var byDay={},order=[];
+      arr.forEach(function(p){var d=p._sess.day;if(!byDay[d]){byDay[d]=[];order.push(d);}byDay[d].push(p);});
+      order.forEach(function(d){
+        var g=byDay[d];
+        html+='<div class="pgroup-h"><span class="d">'+esc(g[0]._sess.dl)+'</span><span class="n">'+g.length+' poster'+(g.length!==1?'s':'')+'</span></div>';
+        g.forEach(function(p){
+          var board=boardOf(p);
+          var ctx=(board!=null?'<b class="board">Board '+board+'</b> · ':'')+esc(p._sess.t1)+' · '+esc(shortPoster(p._sess.t));
+          html+=posterHTML(p,ctx);
+        });
       });
     }
     else if(state.pSort==='track'){
@@ -650,11 +659,11 @@ body.calendar-view .list{padding:0}
       Object.keys(byT).sort().forEach(function(t){
         var arr=byT[t].sort(byTitle);
         html+='<div class="pgroup-h"><span class="d"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+(trackColor[t]||'#8b8d96')+';margin-right:7px"></span>'+esc(t)+'</span><span class="n">'+arr.length+'</span></div>';
-        arr.forEach(function(p){html+=posterHTML(p,false);});
+        arr.forEach(function(p){html+=posterHTML(p);});
       });
     }else{
       var sorted=filtered.slice().sort(state.pSort==='pres'?byPresenter:byTitle);
-      sorted.forEach(function(p){html+=posterHTML(p,false);});
+      sorted.forEach(function(p){html+=posterHTML(p);});
     }
     document.getElementById('list').innerHTML=html;
     // update poster nav active + picks count
@@ -663,8 +672,18 @@ body.calendar-view .list{padding:0}
   }
   function byTitle(a,b){return (a.t||'').localeCompare(b.t||'');}
   function byPresenter(a,b){var an=(a.sp&&a.sp[0]&&a.sp[0].n)||'zzz',bn=(b.sp&&b.sp[0]&&b.sp[0].n)||'zzz';return an.localeCompare(bn);}
+  // poster board number — not published by ASHG yet; future-proofed if it appears in the data
+  function boardOf(p){var b=(p.board!=null?p.board:null);if(b==null)return null;var n=parseInt(b,10);return isNaN(n)?null:n;}
+  function byDayTimeBoard(a,b){
+    var ad=(a._sess.day||''),bd=(b._sess.day||'');if(ad!==bd)return ad<bd?-1:1;
+    var at=(a.sk||a._sess.sk||''),bt=(b.sk||b._sess.sk||'');if(at!==bt)return at<bt?-1:1;
+    var ab=boardOf(a),bb=boardOf(b);
+    if(ab!=null&&bb!=null&&ab!==bb)return ab-bb;
+    if(ab!=null&&bb==null)return -1;if(ab==null&&bb!=null)return 1;
+    return (a.t||'').localeCompare(b.t||'');
+  }
 
-  function posterHTML(p,showSess){
+  function posterHTML(p,ctx){
     var open=openPosters.has(p.id);
     var pres=(p.sp||[]).map(function(x){return x.n+(x.a?' · '+x.a:'');}).join('; ');
     var track=(p.tr&&p.tr[0])?'<span class="ptag"><span class="dot" style="background:'+(trackColor[p.tr[0]]||'#8b8d96')+'"></span>'+esc(p.tr[0])+'</span>':'';
@@ -673,6 +692,7 @@ body.calendar-view .list{padding:0}
     return '<div class="poster'+(open?' exp':'')+'" data-pid="'+p.id+'">'+
       '<button class="star'+(stars.has(p.id)?' on':'')+'" data-star="'+p.id+'" title="Save poster">'+(stars.has(p.id)?ICON.starFill:ICON.star)+'</button>'+
       '<div class="poster-main js-ptoggle">'+
+        (ctx?'<div class="poster-ctx">'+ctx+'</div>':'')+
         '<div class="poster-title">'+esc(p.t)+'</div>'+
         '<div class="poster-meta">'+(pres?'<span class="poster-pres">'+esc(pres)+'</span>':'')+track+'</div>'+
         body+
@@ -724,10 +744,12 @@ body.calendar-view .list{padding:0}
         if(a)items.push({id:s.id,kind:'session',title:s.t,sub:'',room:s.rm.join(', '),
           day:a[0],dl:s.dl,startMin:a[1],endMin:b?b[1]:a[1]+60,ref:s});
       }
+      // posters live in "My poster picks", not the calendar
+      if(s.st.indexOf('Poster Presentations')>-1)return;
       (s.pr||[]).forEach(function(p){
         if(stars.has(p.id)){
           var a=locMin(p.s),b=locMin(p.e);
-          if(a)items.push({id:p.id,kind:(s.st.indexOf('Poster Presentations')>-1?'poster':'talk'),
+          if(a)items.push({id:p.id,kind:'talk',
             title:p.t,sub:s.t,room:(p.rm&&p.rm.length?p.rm.join(', '):s.rm.join(', ')),
             day:a[0],dl:s.dl,startMin:a[1],endMin:b?b[1]:a[1]+30,ref:p});
         }
@@ -766,11 +788,11 @@ body.calendar-view .list{padding:0}
     var items=scheduleItems();
     if(state.q){items=items.filter(function(it){return (it.title+' '+it.sub+' '+it.room).toLowerCase().indexOf(state.q)>-1;});}
     document.getElementById('daybar').innerHTML='<div class="phead"><div class="phead-title">My Schedule</div>'+
-      '<div class="phead-meta">'+items.length+' starred item'+(items.length!==1?'s':'')+' · sessions, talks &amp; posters you’ve saved</div></div>';
+      '<div class="phead-meta">'+items.length+' starred item'+(items.length!==1?'s':'')+' · sessions &amp; talks you’ve saved (posters live in My poster picks)</div></div>';
     document.getElementById('count').textContent=items.length+' item'+(items.length!==1?'s':'');
     var list=document.getElementById('list');
     if(!items.length){
-      list.innerHTML='<div class="empty"><h3>Your schedule is empty</h3><p>Tap the ☆ on any session, presentation, or poster and it will appear here laid out by day and time — so you can spot overlaps at a glance.</p></div>';
+      list.innerHTML='<div class="empty"><h3>Your schedule is empty</h3><p>Tap the ☆ on any session or presentation and it will appear here laid out by day and time — so you can spot overlaps at a glance. (Starred posters go to <b>My poster picks</b>.)</p></div>';
       return;
     }
     // group by day, then render each day full-width, stacked vertically
@@ -1017,7 +1039,7 @@ body.calendar-view .list{padding:0}
 
   document.getElementById('filters').addEventListener('click',function(e){
     // calendar agenda: remove item / clear all
-    if(e.target.closest('#clearSched')){stars.clear();saveStars();buildCalendarNav();render();return;}
+    if(e.target.closest('#clearSched')){scheduleItems().forEach(function(it){stars.delete(it.id);});saveStars();buildCalendarNav();render();return;}
     if(state.view==='calendar'){
       var st=e.target.closest('[data-star]');
       if(st){toggleSet(stars,st.getAttribute('data-star'));saveStars();buildCalendarNav();render();return;}
