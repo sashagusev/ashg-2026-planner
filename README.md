@@ -2,12 +2,15 @@
 
 An elegant, fast, static single-page planner for the **ASHG 2026 Annual Meeting** (Montréal, Oct 18–24, 2026). It's a clean, Linear-style front-end over the full conference program so you can browse and filter sessions without fighting the official scheduler app.
 
-- **257 sessions** with **3,100 nested presentations/abstracts**
-- Filter by **day**, **session type**, **track**, and **room** (faceted counts update live)
-- Full-text **search** across titles, speakers, and abstract text
-- **★ My Schedule** — star sessions; saved in your browser (`localStorage`)
-- Expandable session detail with description, chairs/speakers, and each talk's time, presenter, and abstract
-- Dark, minimal, keyboard-friendly (`/` focuses search), responsive down to mobile
+Three views, switchable from the sidebar:
+
+- **Program** — all **257 sessions** grouped by day. Filter by **day**, **session type**, **track**, and **room** (faceted counts update live) and search across titles, speakers, and text. Expand a session for its description and its individual presentations; star a whole session or any single talk.
+- **Posters** — built for the **2,655 poster abstracts** across 48 poster sessions (13–153 each). Pick a session, then filter its posters by **track**, sort them, and search within it. Every poster expands to its full author list, and you can star individual posters into **My poster picks**.
+- **Calendar** — everything you've starred (sessions, talks, and posters) laid out on a day-by-day timeline so overlaps are obvious at a glance.
+
+Other niceties: **★ My Schedule** persists in your browser (`localStorage`), light/minimal Linear-style UI, keyboard-friendly (`/` focuses search), responsive down to mobile.
+
+> **A note on abstracts:** ASHG abstract bodies are embargoed until the meeting, so they aren't in the public program data — only titles and author lists are. The planner shows each poster/talk's **full author list** and will show real abstract text automatically if/when it becomes available.
 
 No build step, no framework, no backend — just three files.
 
@@ -59,3 +62,4 @@ The program data was captured from the official app's own cached API responses (
 
 - All times are shown in **Montréal local time (Eastern, UTC−4)**, matching the official app.
 - Some administrative sessions (industry events, socials, ancillary meetings) don't carry a scientific track — these appear under **"No track assigned"** in the Track filter.
+- The **Calendar** view is a week-style grid; overlapping starred items are placed side by side so scheduling conflicts are easy to spot.
