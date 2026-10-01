@@ -7,7 +7,7 @@
 <meta name="description" content="An elegant, fast planner for the ASHG 2026 Annual Meeting program — filter sessions by day, track, type, and room." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600&family=Newsreader:opsz,wght@6..72,400..800&display=swap" rel="stylesheet" />
 <style>
 :root{
   --bg:#ffffff;
@@ -22,9 +22,11 @@
   --accent:#4553c2;
   --accent-soft:rgba(69,83,194,.08);
   --star:#c58e0b;
-  --serif:'Instrument Serif','Iowan Old Style','Palatino Linotype',Georgia,serif;
+  --serif:'Newsreader','Iowan Old Style','Palatino Linotype',Georgia,serif;
   --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   --top:61px;
+}
+.brand h1,.chip .dn,.daygroup-h .d,.empty h3,.phead-title,.cal-day-h .d{font-optical-sizing:auto;font-variation-settings:'opsz' 72
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -50,7 +52,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 
 /* ---------- Brand + view nav ---------- */
 .brand{padding:26px 22px 18px}
-.brand h1{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1;letter-spacing:-.01em;margin:0}
+.brand h1{font-family:var(--serif);font-weight:800;font-size:27px;line-height:1;letter-spacing:-.025em;margin:0}
 .brand .sub{font-size:12px;color:var(--text-3);margin-top:7px}
 .viewswitch{display:flex;flex-direction:column;gap:1px;padding:0 12px 14px;border-bottom:1px solid var(--border)}
 .viewswitch button{background:none;border:none;text-align:left;font-size:13.5px;color:var(--text-2);padding:7px 10px;border-radius:7px;transition:background .12s,color .12s}
@@ -97,7 +99,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .daybar{display:flex;align-items:flex-end;gap:2px;padding:18px 32px 0;flex-wrap:wrap;border-bottom:1px solid var(--border)}
 .chip{background:none;border:none;padding:6px 14px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-2);border-radius:0;box-shadow:inset 0 -2px 0 transparent;transition:color .12s,box-shadow .12s}
 .chip .dw{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)}
-.chip .dn{font-family:var(--serif);font-size:25px;line-height:1;color:var(--text-2)}
+.chip .dn{font-family:var(--serif);font-weight:700;font-size:24px;line-height:1;letter-spacing:-.02em;color:var(--text-2)}
 .chip .c{font-size:10.5px;color:var(--text-3);font-variant-numeric:tabular-nums;min-height:13px}
 .chip:hover .dn{color:var(--text)}
 .chip.on{box-shadow:inset 0 -2px 0 var(--text)}
@@ -112,7 +114,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .list{padding:4px 32px 110px;max-width:1000px}
 .daygroup{margin-top:34px}
 .daygroup-h{position:sticky;top:var(--top);z-index:10;display:flex;align-items:baseline;gap:12px;padding:14px 12px 12px;background:var(--bg)}
-.daygroup-h .d{font-family:var(--serif);font-size:28px;line-height:1.1;letter-spacing:-.005em}
+.daygroup-h .d{font-family:var(--serif);font-weight:800;font-size:27px;line-height:1.1;letter-spacing:-.025em}
 .daygroup-h .n{font-size:12.5px;color:var(--text-3)}
 .timedivider{height:0;border-top:1px solid var(--border-2);margin-top:22px}
 .timedivider + .card{border-top-color:transparent}
@@ -169,13 +171,13 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 
 /* ---------- Empty ---------- */
 .empty{text-align:center;padding:90px 20px;color:var(--text-3);font-size:13.5px}
-.empty h3{font-family:var(--serif);font-weight:400;font-size:26px;color:var(--text);margin:0 0 8px}
+.empty h3{font-family:var(--serif);font-weight:800;font-size:25px;letter-spacing:-.02em;color:var(--text);margin:0 0 8px}
 .empty p{max-width:44ch;margin:0 auto;line-height:1.6}
 .loading{padding:60px;text-align:center;color:var(--text-3)}
 
 /* ---------- Posters ---------- */
 .phead{padding:30px 32px 6px}
-.phead-title{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.12;letter-spacing:-.005em;color:var(--text);max-width:30ch;text-wrap:balance}
+.phead-title{font-family:var(--serif);font-weight:800;font-size:30px;line-height:1.08;letter-spacing:-.025em;color:var(--text);max-width:30ch;text-wrap:balance}
 .phead-meta{font-size:12.5px;color:var(--text-3);margin-top:8px}
 .ptoolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 32px 14px;border-bottom:1px solid var(--border)}
 .ptracks{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
@@ -209,7 +211,7 @@ body.calendar-view .daybar{padding:0;border-bottom:none;display:block}
 .cal-stack{padding:4px 32px 80px;max-width:1080px}
 .cal-day{margin-top:26px}
 .cal-day-h{position:sticky;top:var(--top);z-index:6;display:flex;align-items:baseline;gap:12px;padding:14px 0 10px;background:var(--bg)}
-.cal-day-h .d{font-family:var(--serif);font-size:28px;line-height:1.1;color:var(--text)}
+.cal-day-h .d{font-family:var(--serif);font-weight:800;font-size:27px;line-height:1.1;letter-spacing:-.025em;color:var(--text)}
 .cal-day-h .n{font-size:12.5px;color:var(--text-3)}
 .cal-cluster{display:flex;gap:18px;padding:14px 0;border-top:1px solid var(--border)}
 .cal-cluster-time{flex:none;width:66px;font-size:13px;color:var(--text);font-weight:500;font-variant-numeric:tabular-nums;padding-top:9px}
