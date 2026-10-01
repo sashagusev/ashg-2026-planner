@@ -832,7 +832,7 @@ body.calendar-view .list{padding:0}
     var byDay={},order=[];
     items.forEach(function(it){if(!byDay[it.day]){byDay[it.day]=[];order.push(it.day);}byDay[it.day].push(it);});
     order.sort();
-    var PX=0.95;
+    var PX=2.4;
     var html='<div class="cal-stack">';
     order.forEach(function(day){
       var arr=byDay[day].slice().sort(function(a,b){return a.startMin-b.startMin || a.endMin-b.endMin;});
@@ -858,7 +858,7 @@ body.calendar-view .list{padding:0}
       }
       var blocks='';
       arr.forEach(function(it){
-        var top=(it.startMin-minM)*PX, hgt=Math.max((it.endMin-it.startMin)*PX,24);
+        var top=(it.startMin-minM)*PX, hgt=Math.max((it.endMin-it.startMin)*PX,34);
         var w=100/lanes, left=it._lane*w;
         var c=calColor(it);
         var kindLbl=it.kind==='poster'?'Poster':(it.kind==='talk'?'Talk':'');
