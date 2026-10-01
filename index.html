@@ -856,7 +856,8 @@ body.calendar-view .list{padding:0}
       '<div class="calc-time">'+esc(timeLbl)+'</div>'+
       '<div class="calc-title">'+esc(p.t)+'</div>'+
       (calTalkPresenters(p)?'<div class="calc-people">'+esc(calTalkPresenters(p))+'</div>':'')+
-      '<div class="calc-sess">'+esc(ps.t)+(room2?' · '+esc(room2):'')+'</div>'+
+      '<div class="calc-sess">'+esc(ps.t)+'</div>'+
+      (room2?'<div class="calc-room">'+ICON.pin+esc(room2)+'</div>':'')+
     '</div>';
   }
 
