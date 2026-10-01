@@ -192,6 +192,7 @@ button{font-family:inherit;cursor:pointer}
 }
 .badge .dot{width:7px;height:7px;border-radius:2px}
 .badge.type{background:var(--bg-2);color:var(--text-2);border:1px solid var(--border)}
+.badge.star-badge{background:var(--accent-soft);color:var(--accent-2);border:1px solid transparent;font-weight:600}
 .tag{font-size:11.5px;color:var(--text-3);display:inline-flex;align-items:center;gap:4px}
 .tag svg{width:12px;height:12px;opacity:.75;flex:none}
 .tag.room{color:var(--text-2)}
@@ -417,10 +418,18 @@ body.calendar-view .list{padding:0}
       p._search=parts.join('  ').toLowerCase();
     });
   });
+  var ALL_POSTERS=[];POSTERS.forEach(function(s){(s.pr||[]).forEach(function(p){ALL_POSTERS.push(p);});});
   if(POSTERS.length)state.pSession=POSTERS[0].id;
   var POSTERS_HAVE_BOARDS=POSTERS.some(function(s){return (s.pr||[]).some(function(p){return boardOf(p)!=null;});});
   function starredPosters(){var a=[];POSTERS.forEach(function(s){(s.pr||[]).forEach(function(p){if(stars.has(p.id))a.push(p);});});return a;}
-  function countStarredSessions(){var n=0;stars.forEach(function(id){if(sessionIds.has(id))n++;});return n;}
+  function isPosterSession(s){return s.st.indexOf('Poster Presentations')>-1;}
+  // a session belongs in My Schedule if it is starred, or (non-poster) contains a starred talk
+  function sessionStarred(s){
+    if(stars.has(s.id))return true;
+    if(isPosterSession(s))return false;
+    return (s.pr||[]).some(function(p){return stars.has(p.id);});
+  }
+  function sessionHasStarredTalk(s){return !stars.has(s.id)&&!isPosterSession(s)&&(s.pr||[]).some(function(p){return stars.has(p.id);});}
   var openPosters=new Set();
   // link every presentation to its parent session + day (for the calendar view)
   var presById={};
@@ -452,7 +461,7 @@ body.calendar-view .list{padding:0}
 
   // ---- counts helper (respects OTHER active filters, faceted) ----
   function matches(s,ignore){
-    if(state.starOnly && !stars.has(s.id))return false;
+    if(state.starOnly && !sessionStarred(s))return false;
     if(ignore!=='q' && state.q){if(s._search.indexOf(state.q)===-1)return false;}
     if(ignore!=='days' && state.days.size && !state.days.has(s.day))return false;
     if(ignore!=='types' && state.types.size && !s.st.some(function(t){return state.types.has(t);}))return false;
@@ -538,6 +547,8 @@ body.calendar-view .list{padding:0}
   // ---- render program list ----
   function renderProgram(){
     var filtered=D.sessions.filter(function(s){return matches(s,null);});
+    // in My Schedule, auto-expand sessions that are here only because a talk inside is starred
+    if(state.starOnly)filtered.forEach(function(s){if(sessionHasStarredTalk(s))openCards.add(s.id);});
     // group by day
     var groups={},order=[];
     filtered.forEach(function(s){
@@ -589,6 +600,7 @@ body.calendar-view .list{padding:0}
 
   function currentPosters(){
     if(state.pSession==='__picks__')return starredPosters();
+    if(state.q)return ALL_POSTERS; // a query searches across every poster
     var s=posterById[state.pSession];return s?(s.pr||[]):[];
   }
   function posterMatch(p){
@@ -599,15 +611,22 @@ body.calendar-view .list{padding:0}
 
   function renderPosters(){
     var isPicks=state.pSession==='__picks__';
+    var isSearchAll=!isPicks && !!state.q; // a query searches all posters, across sessions
     var all=currentPosters();
-    // toolbar
+    // scope by query first (so track chips reflect the search), then by track chips
+    var qFiltered=state.q?all.filter(function(p){return p._search.indexOf(state.q)>-1;}):all;
     var tracksInSet={};
-    all.forEach(function(p){(p.tr||[]).forEach(function(t){tracksInSet[t]=(tracksInSet[t]||0)+1;});});
+    qFiltered.forEach(function(p){(p.tr||[]).forEach(function(t){tracksInSet[t]=(tracksInSet[t]||0)+1;});});
     var trackList=Object.keys(tracksInSet).sort();
+    var filtered=state.pTracks.size?qFiltered.filter(function(p){return (p.tr||[]).some(function(t){return state.pTracks.has(t);});}):qFiltered;
     var head='';
     if(isPicks){
       head='<div class="phead"><div class="phead-title">★ My poster picks</div>'+
            '<div class="phead-meta">'+all.length+' poster'+(all.length!==1?'s':'')+' saved · sorted by day, time, board number</div></div>';
+    }else if(isSearchAll){
+      var nSess={};filtered.forEach(function(p){nSess[p._sess.id]=1;});
+      head='<div class="phead"><div class="phead-title">All posters</div>'+
+           '<div class="phead-meta">'+filtered.length+' poster'+(filtered.length!==1?'s':'')+' matching “'+esc(state.q)+'” across '+Object.keys(nSess).length+' session'+(Object.keys(nSess).length!==1?'s':'')+'</div></div>';
     }else{
       var s=posterById[state.pSession];
       head='<div class="phead"><div class="phead-title">'+esc(s?s.t:'')+'</div>'+
@@ -624,23 +643,35 @@ body.calendar-view .list{padding:0}
       });
       chips+='</div>';
     }
-    var sortSeg=isPicks?'':'<div class="seg pseg">'+
+    var sortSeg=(isPicks||isSearchAll)?'':'<div class="seg pseg">'+
       '<button data-psort="track"'+(state.pSort==='track'?' class="on"':'')+'>By track</button>'+
       '<button data-psort="az"'+(state.pSort==='az'?' class="on"':'')+'>A–Z</button>'+
       '<button data-psort="pres"'+(state.pSort==='pres'?' class="on"':'')+'>Presenter</button></div>';
     document.getElementById('daybar').innerHTML=head+'<div class="ptoolbar">'+chips+sortSeg+'</div>';
 
-    // filter
-    var filtered=all.filter(posterMatch);
-    var scoped=(state.q||state.pTracks.size);
-    var govern=scoped?all.length:filtered.length;
-    document.getElementById('count').textContent=filtered.length+(scoped?(' of '+all.length):'')+' poster'+(govern!==1?'s':'');
+    // count
+    if(isPicks||isSearchAll){
+      document.getElementById('count').textContent=filtered.length+' poster'+(filtered.length!==1?'s':'');
+    }else{
+      var scoped=state.pTracks.size;
+      document.getElementById('count').textContent=filtered.length+(scoped?(' of '+all.length):'')+' poster'+((scoped?all.length:filtered.length)!==1?'s':'');
+    }
 
     // sort/group
     var html='';
     if(!POSTERS.length){html='<div class="empty"><h3>No poster sessions</h3></div>';}
     else if(isPicks && !all.length){html='<div class="empty"><h3>No posters saved yet</h3><p>Open a poster session and tap the star on posters you want to visit. They’ll collect here.</p></div>';}
     else if(!filtered.length){html='<div class="empty"><h3>No posters match</h3><p>Try a different search or clear the track filter.</p></div>';}
+    else if(isSearchAll){
+      // group matches by session, sessions ordered by day/time
+      var bySess={};filtered.forEach(function(p){(bySess[p._sess.id]=bySess[p._sess.id]||[]).push(p);});
+      var sessIds=Object.keys(bySess).sort(function(a,b){return (posterById[a].sk||'').localeCompare(posterById[b].sk||'')||posterById[a].t.localeCompare(posterById[b].t);});
+      sessIds.forEach(function(k){
+        var sp=posterById[k];var g=bySess[k].slice().sort(byDayTimeBoard);
+        html+='<div class="pgroup-h"><span class="d">'+esc(sp.t)+'</span><span class="n">'+esc(sp.dl+' · '+sp.t1)+' · '+g.length+' here</span></div>';
+        g.forEach(function(p){html+=posterHTML(p);});
+      });
+    }
     else if(isPicks){
       // flat list sorted by day -> time -> board number -> title, grouped by day
       var arr=filtered.slice().sort(byDayTimeBoard);
@@ -710,7 +741,7 @@ body.calendar-view .list{padding:0}
     document.body.classList.toggle('posters-view',v==='posters');
     document.body.classList.toggle('calendar-view',v==='calendar');
     if(v==='posters'){
-      qEl.placeholder='Search posters in this session…';
+      qEl.placeholder='Search all posters…';
       buildPosterNav();
     }else if(v==='calendar'){
       qEl.placeholder='Search sessions, speakers, abstracts…';
@@ -890,6 +921,8 @@ body.calendar-view .list{padding:0}
     var trackTags=s.tr.map(function(t){return '<span class="tag"><span class="dot" style="width:7px;height:7px;border-radius:2px;background:'+(trackColor[t]||'#666')+'"></span>'+esc(t)+'</span>';}).join('');
     var room=s.rm.length?'<span class="tag room">'+ICON.pin+esc(s.rm.join(', '))+'</span>':'';
     var sub=s.sub&&!s.st.length?'<span class="badge type">'+esc(s.sub)+'</span>':'';
+    var nStar=(s.pr||[]).reduce(function(a,p){return a+(stars.has(p.id)?1:0);},0);
+    var starBadge=nStar?'<span class="badge star-badge">★ '+nStar+' saved talk'+(nStar>1?'s':'')+'</span>':'';
     // people summary
     var lead=[];
     if(s.ch.length)lead.push('<b>'+esc(s.ch.map(nm).join(', '))+'</b>');
@@ -904,7 +937,7 @@ body.calendar-view .list{padding:0}
         '<div class="time"><span class="t1">'+esc(s.t1)+'</span><span class="t2">'+(s.dur?esc(s.dur):esc(s.t2))+'</span></div>'+
         '<div class="body">'+
           '<div class="title">'+esc(s.t)+'</div>'+
-          '<div class="meta">'+typeBadge+sub+trackTags+room+'</div>'+
+          '<div class="meta">'+typeBadge+sub+starBadge+trackTags+room+'</div>'+
           people+
         '</div>'+
         '<div class="card-side">'+
@@ -976,7 +1009,7 @@ body.calendar-view .list{padding:0}
     });
     // star toggle
     var stEl=document.getElementById('starToggle');if(stEl)stEl.classList.toggle('on',state.starOnly);
-    var scEl=document.getElementById('starCount');if(scEl)scEl.textContent=countStarredSessions();
+    var scEl=document.getElementById('starCount');if(scEl)scEl.textContent=scheduleItems().length;
     // reset btn
     var any=state.q||state.days.size||state.types.size||state.tracks.size||state.rooms.size||state.starOnly;
     var rb=document.getElementById('resetBtn');if(rb)rb.disabled=!any;
@@ -1044,7 +1077,7 @@ body.calendar-view .list{padding:0}
       }else if(state.view==='calendar'){
         buildCalendarNav();render();
       }else{
-        var scEl=document.getElementById('starCount');if(scEl)scEl.textContent=countStarredSessions();
+        var scEl=document.getElementById('starCount');if(scEl)scEl.textContent=scheduleItems().length;
         if(state.starOnly)render();
       }
       return;
