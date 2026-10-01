@@ -4,13 +4,13 @@ An elegant, fast, static single-page planner for the **ASHG 2026 Annual Meeting*
 
 Three views, switchable from the sidebar:
 
-- **Program** — all **257 sessions** grouped by day. Filter by **day**, **session type**, **track**, and **room** (faceted counts update live) and search across titles, speakers, and text. Expand a session for its description and its individual presentations; star a whole session or any single talk.
-- **Posters** — built for the **2,655 poster abstracts** across 48 poster sessions (13–153 each). Pick a session, then filter its posters by **track**, sort them, and search within it. Every poster expands to its full author list, and you can star individual posters into **My poster picks**.
+- **Program** — all **268 sessions** grouped by day. Filter by **day**, **session type**, **track**, and **room** (faceted counts update live) and search across titles, speakers, and **abstract text**. Expand a session for its description and its individual talks — each with its full **abstract** and author list; star a whole session or any single talk.
+- **Posters** — built for the **2,700+ poster abstracts** across 51 poster sessions. Pick a session, then filter its posters by **track**, sort them, and search within it. Each poster shows its **board number** and expands to the full abstract and author list, and you can star individual posters into **My poster picks** (sorted by day, time, and board number).
 - **Calendar** — everything you've starred (sessions, talks, and posters) laid out on a day-by-day timeline so overlaps are obvious at a glance.
 
 Other niceties: **★ My Schedule** persists in your browser (`localStorage`), light/minimal Linear-style UI, keyboard-friendly (`/` focuses search), responsive down to mobile.
 
-> **A note on abstracts:** ASHG abstract bodies are embargoed until the meeting, so they aren't in the public program data — only titles and author lists are. The planner shows each poster/talk's **full author list** and will show real abstract text automatically if/when it becomes available.
+Full abstracts, author lists, and poster board numbers are included (pulled once ASHG released them, September 2026).
 
 No build step, no framework, no backend — just three files.
 
