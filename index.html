@@ -433,7 +433,7 @@ body.calendar-view .list{padding:0}
     if(s.abs)parts.push(s.abs);
     (s.pr||[]).forEach(function(p){
       parts.push(p.t);(p.sp||[]).forEach(function(x){if(x)parts.push(x.n,x.a);});
-      if(p.abs)parts.push(p.abs); if(p.board)parts.push('board '+p.board);
+      if(p.abs)parts.push(p.abs); if(p.au)parts.push(p.au); if(p.board)parts.push('board '+p.board);
     });
     s._search=parts.join('  ').toLowerCase();
   });
